@@ -62,140 +62,125 @@ namespace System.Base
             foreach (var (receiveRpcCommandRequest, unitSpawnRequest, rpcEntity) 
                      in SystemAPI.Query<RefRO<ReceiveRpcCommandRequest>, RefRO<RequestUnitSpawnRpc>>().WithEntityAccess())
             {
-                Logger.Log(new LogData
-                {
-                    Message = "Received RequestUnitSpawnRpc",
-                    ShowClientServerPrefix = 1,
-                    WorldUnmanaged = state.WorldUnmanaged
-                });
-                
-                var flag = true;
-                
-                foreach (var (playerData, ghostOwner) in SystemAPI.Query<RefRW<PlayerData>, RefRO<GhostOwner>>())
-				{
-                    if (ghostOwner.ValueRO.NetworkId != SystemAPI.GetComponent<NetworkId>(receiveRpcCommandRequest.ValueRO.SourceConnection).Value)
-						continue;
-
-                    const int price = 10;
-                    if (playerData.ValueRO.Gold < price)
-                    {
-                        entityCommandBuffer.DestroyEntity(rpcEntity);
-                        // entityCommandBuffer.Playback(state.EntityManager);
-                        flag = false;
-                        break;
-                    }
-
-                    playerData.ValueRW.Gold -= price;
-				}
-
-                if (!flag) {
-                    continue;
-                }
-                
-                
-                var spawnerData = SystemAPI.GetSingleton<UnitSpawnerData>();
-                var unitEntity = entityCommandBuffer.Instantiate(spawnerData.UnitPrefab);
-                foreach (var (baseData, ghostOwner) in SystemAPI.Query<RefRO<BaseData>, RefRO<GhostOwner>>())
-                {
-                    if (ghostOwner.ValueRO.NetworkId != SystemAPI.GetComponent<NetworkId>(receiveRpcCommandRequest.ValueRO.SourceConnection).Value)
-                    {
-                        continue;
-                    }
-                    
-                    switch (baseData.ValueRO.BaseType)
-                    {
-                        case BaseType.Red:
-                            switch (unitSpawnRequest.ValueRO.Lane)
-                            {
-                                case BaseLane.Left:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.BlueRed, false);
-                                    break;
-                                case BaseLane.Right:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowRed, true);
-                                    break;
-                                case BaseLane.Forward:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.RedGreen, true);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                            break;
-                        case BaseType.Blue:
-                            switch (unitSpawnRequest.ValueRO.Lane)
-                            {
-                                case BaseLane.Left:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.BlueGreen, false);
-                                    break;
-                                case BaseLane.Right:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.BlueRed, true);
-                                    break;
-                                case BaseLane.Forward:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowBlue, false);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                            break;
-                        case BaseType.Yellow:
-                            switch (unitSpawnRequest.ValueRO.Lane)
-                            {
-                                case BaseLane.Left:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowRed, false);
-                                    break;
-                                case BaseLane.Right:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowGreen, true);
-                                    break;
-                                case BaseLane.Forward:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowBlue, true);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                            break;
-                        case BaseType.Green:
-                            switch (unitSpawnRequest.ValueRO.Lane)
-                            {
-                                case BaseLane.Left:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.YellowGreen, false);
-                                    break;
-                                case BaseLane.Right:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.BlueGreen, true);
-                                    break;
-                                case BaseLane.Forward:
-                                    SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
-                                        SplineType.RedGreen, false);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                }
-                
-                Logger.Log(new LogData
-                {
-                    Message = $"Spawned unit on lane {unitSpawnRequest.ValueRO.Lane}",
-                    ShowClientServerPrefix = 1,
-                    WorldUnmanaged = state.WorldUnmanaged
-                });
-                
+                HandleBuyingUnits(ref state, ref entityCommandBuffer, receiveRpcCommandRequest, unitSpawnRequest);
                 entityCommandBuffer.DestroyEntity(rpcEntity);
             }
-            
+
             entityCommandBuffer.Playback(state.EntityManager);
+        }
+
+        private void HandleBuyingUnits(ref SystemState state, ref EntityCommandBuffer entityCommandBuffer, RefRO<ReceiveRpcCommandRequest> receiveRpcCommandRequest, RefRO<RequestUnitSpawnRpc> unitSpawnRequest)
+        {
+            foreach (var (playerData, ghostOwner) in SystemAPI.Query<RefRW<PlayerData>, RefRO<GhostOwner>>())
+            {
+                if (ghostOwner.ValueRO.NetworkId != SystemAPI.GetComponent<NetworkId>(receiveRpcCommandRequest.ValueRO.SourceConnection).Value)
+                    continue;
+
+                const int price = 10;
+                if (playerData.ValueRO.Gold < price)
+                    return;
+
+                playerData.ValueRW.Gold -= price;
+            }
+
+            var spawnerData = SystemAPI.GetSingleton<UnitSpawnerData>();
+            var unitEntity = entityCommandBuffer.Instantiate(spawnerData.UnitPrefab);
+            foreach (var (baseData, ghostOwner) in SystemAPI.Query<RefRO<BaseData>, RefRO<GhostOwner>>())
+            {
+                if (ghostOwner.ValueRO.NetworkId != SystemAPI.GetComponent<NetworkId>(receiveRpcCommandRequest.ValueRO.SourceConnection).Value)
+                {
+                    continue;
+                }
+
+                switch (baseData.ValueRO.BaseType)
+                {
+                    case BaseType.Red:
+                        switch (unitSpawnRequest.ValueRO.Lane)
+                        {
+                            case BaseLane.Left:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.BlueRed, false);
+                                break;
+                            case BaseLane.Right:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowRed, true);
+                                break;
+                            case BaseLane.Forward:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.RedGreen, true);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        break;
+                    case BaseType.Blue:
+                        switch (unitSpawnRequest.ValueRO.Lane)
+                        {
+                            case BaseLane.Left:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.BlueGreen, false);
+                                break;
+                            case BaseLane.Right:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.BlueRed, true);
+                                break;
+                            case BaseLane.Forward:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowBlue, false);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        break;
+                    case BaseType.Yellow:
+                        switch (unitSpawnRequest.ValueRO.Lane)
+                        {
+                            case BaseLane.Left:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowRed, false);
+                                break;
+                            case BaseLane.Right:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowGreen, true);
+                                break;
+                            case BaseLane.Forward:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowBlue, true);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        break;
+                    case BaseType.Green:
+                        switch (unitSpawnRequest.ValueRO.Lane)
+                        {
+                            case BaseLane.Left:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.YellowGreen, false);
+                                break;
+                            case BaseLane.Right:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.BlueGreen, true);
+                                break;
+                            case BaseLane.Forward:
+                                SetWalkerComponent(ref state, ref entityCommandBuffer, ref unitEntity,
+                                    SplineType.RedGreen, false);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            Logger.Log(new LogData
+            {
+                Message = $"Spawned unit on lane {unitSpawnRequest.ValueRO.Lane}",
+                ShowClientServerPrefix = 1,
+                WorldUnmanaged = state.WorldUnmanaged
+            });
         }
     }
 }
