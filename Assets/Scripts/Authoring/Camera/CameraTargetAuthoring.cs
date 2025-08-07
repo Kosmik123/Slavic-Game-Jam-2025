@@ -4,15 +4,17 @@ using UnityEngine;
 
 namespace Authoring.Camera
 {
-    public class CameraTarget : MonoBehaviour
+    public class CameraTargetAuthoring : MonoBehaviour
     {
-        private class CameraTargetBaker : Baker<CameraTarget>
+        [SerializeField]
+        private float moveSpeed;
+
+        private class CameraTargetBaker : Baker<CameraTargetAuthoring>
         {
-            public override void Bake(CameraTarget authoring)
+            public override void Bake(CameraTargetAuthoring authoring)
             {
                 var entity = GetEntity(TransformUsageFlags.Dynamic);
-                
-                AddComponent(entity, new CameraTargetData());
+                AddComponent(entity, new CameraTargetData { moveSpeed = authoring.moveSpeed });
             }
         }
     }

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Data.Camera;
+﻿using Data.Camera;
 using Helpers.Network;
 using Unity.Transforms;
 using UnityEngine;
@@ -18,12 +16,10 @@ namespace Mono
 			var entityManager = clientWorld.EntityManager;
 			using var query = entityManager.CreateEntityQuery(typeof(CameraTargetData));
 			if (query.IsEmpty)
-			{
 				return;
-			}
 
 			var localTransform = entityManager.GetComponentData<LocalTransform>(query.GetSingletonEntity());
-			transform.position = localTransform.Position;
+			transform.SetPositionAndRotation(localTransform.Position, localTransform.Rotation);
 		}
 	}
 }

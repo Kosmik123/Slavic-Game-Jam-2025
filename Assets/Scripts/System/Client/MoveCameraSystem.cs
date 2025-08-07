@@ -18,14 +18,25 @@ namespace System.Client
         
         public void OnUpdate(ref SystemState state)
         {
-            foreach (var localTransform
-                     in SystemAPI.Query<RefRW<LocalTransform>>().WithAll<CameraTargetData>())
+            foreach (var (localTransform, cameraData)
+                     in SystemAPI.Query<RefRW<LocalTransform>, RefRO<CameraTargetData>>())
             {
-                var x = Input.GetAxisRaw("Horizontal");
-                var y = Input.GetAxisRaw("Vertical");
+                var xInput = Input.GetAxisRaw("Horizontal");
+                var yInput = Input.GetAxisRaw("Vertical");
 
-                localTransform.ValueRW.Position += new float3(x, 0f, y);
+                float3 flatForward = GetFlatDirection(localTransform.ValueRO.Forward());
+                float3 flatRight = GetFlatDirection(localTransform.ValueRO.Right());
+                float3 movementVector = xInput * flatRight + yInput * flatForward;
+                float moveSpeed = cameraData.ValueRO.moveSpeed;
+
+                localTransform.ValueRW.Position += moveSpeed * SystemAPI.Time.DeltaTime * math.normalizesafe(movementVector);
             }
+        }
+
+        private static float3 GetFlatDirection(float3 direction)
+        {
+            direction.y = 0;
+            return math.normalize(direction);
         }
     }
 }

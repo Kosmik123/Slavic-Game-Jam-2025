@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6518010502675574785}
   - component: {fileID: 5345696449558867245}
   - component: {fileID: 1061012201775671899}
-  - component: {fileID: 2301773816712291862}
+  - component: {fileID: 2857804611799710582}
   m_Layer: 0
   m_Name: Virtual Camera
   m_TagString: Untagged
@@ -90,13 +90,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TrackerSettings:
-    BindingMode: 4
+    BindingMode: 2
     PositionDamping: {x: 0, y: 0, z: 0}
     AngularDampingMode: 0
     RotationDamping: {x: 1, y: 1, z: 1}
     QuaternionDamping: 1
   FollowOffset: {x: 0, y: 20, z: -20}
---- !u!114 &2301773816712291862
+--- !u!114 &2857804611799710582
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
